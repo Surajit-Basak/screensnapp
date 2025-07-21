@@ -38,43 +38,48 @@ export function RecordingControls({
     setIsPaused(false);
   };
 
+  const handleStopRecording = () => {
+    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+      mediaRecorder.current.stop();
+    } else {
+      // This else handles the case where the user stops sharing from the browser UI
+      // which might happen before the recorder is fully stopped.
+      cleanup();
+    }
+  };
+
   const handleStartRecording = async () => {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-            cursor: "always"
-        },
-        audio: includeAudio, // System audio
+        video: { cursor: 'always' },
+        audio: includeAudio, // Request system audio
       });
 
-      let finalStream: MediaStream;
+      // This listener is crucial. It detects when the user clicks the "Stop sharing" button in the browser's UI.
+      displayStream.getVideoTracks()[0].onended = () => {
+        handleStopRecording();
+      };
+      
+      let finalStream: MediaStream = displayStream;
 
       if (includeAudio) {
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTrack = audioStream.getAudioTracks()[0];
-          const combinedStream = new MediaStream([...displayStream.getTracks(), audioTrack]);
-          // Handle case where user stops sharing from browser controls
-          combinedStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
-          finalStream = combinedStream;
+          // Add microphone track to the stream
+          finalStream.addTrack(audioTrack);
         } catch (audioError) {
-          console.warn("Could not get microphone audio, continuing with system audio only.", audioError);
-          finalStream = displayStream;
-           // Handle case where user stops sharing from browser controls
-          finalStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
+          console.warn('Could not get microphone audio.', audioError);
           toast({
             title: 'Microphone not found',
             description: 'Recording will continue without microphone audio.',
-            variant: 'destructive'
+            variant: 'destructive',
           });
         }
-      } else {
-        finalStream = displayStream;
-         // Handle case where user stops sharing from browser controls
-        finalStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
       }
-      
+
       mediaStream.current = finalStream;
+      recordedChunks.current = [];
       
       mediaRecorder.current = new MediaRecorder(mediaStream.current, {
         mimeType: 'video/webm; codecs=vp9',
@@ -97,21 +102,13 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error starting recording:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') {
+      if (error.name !== 'NotAllowedError') { // Don't show toast if user just cancels
         toast({
           title: 'Error starting recording',
-          description: error.message || 'Please ensure you have granted permissions.',
+          description: error.message || 'Please ensure you have granted screen permissions.',
           variant: 'destructive',
         });
       }
-      cleanup();
-    }
-  };
-
-  const handleStopRecording = () => {
-    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
-      mediaRecorder.current.stop();
-    } else {
       cleanup();
     }
   };
@@ -131,25 +128,19 @@ export function RecordingControls({
   const handleScreenshot = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      
       const videoTrack = stream.getVideoTracks()[0];
-      if (!videoTrack) {
-        throw new Error('No video track found for screenshot.');
-      }
 
       // A small delay to allow the user to switch to the window they want to capture
       setTimeout(async () => {
         try {
-          // ImageCapture is more reliable for grabbing a single frame
           const imageCapture = new ImageCapture(videoTrack);
           const bitmap = await imageCapture.grabFrame();
           
-          // Use a canvas to convert the bitmap to a Blob
           const canvas = document.createElement('canvas');
           canvas.width = bitmap.width;
           canvas.height = bitmap.height;
           const context = canvas.getContext('2d');
-          if(context) {
+          if (context) {
             context.drawImage(bitmap, 0, 0);
             canvas.toBlob((blob) => {
               if (blob) {
@@ -163,12 +154,10 @@ export function RecordingControls({
               stream.getTracks().forEach((track) => track.stop());
             }, 'image/png');
           } else {
-             // Stop stream even if canvas context fails
-             stream.getTracks().forEach((track) => track.stop());
+            stream.getTracks().forEach((track) => track.stop());
           }
         } catch (captureError) {
            console.error('Error capturing frame:', captureError);
-           // Stop stream on capture error
            stream.getTracks().forEach((track) => track.stop());
            toast({
               title: 'Error capturing screenshot',
@@ -176,12 +165,11 @@ export function RecordingControls({
               variant: 'destructive',
            });
         }
-      }, 200); // 200ms delay
+      }, 200);
 
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
-      // Don't show a toast if the user just cancels the screen selection dialog
       if (error.name !== 'NotAllowedError') {
         toast({
           title: 'Error starting screenshot session',
@@ -193,31 +181,11 @@ export function RecordingControls({
   };
   
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's'){
-        e.preventDefault();
-        if (!isRecording) {
-          handleScreenshot();
-        }
-      }
-      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'r'){
-        e.preventDefault();
-        if(isRecording) {
-          handleStopRecording();
-        } else {
-          handleStartRecording();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       // Ensure cleanup runs when the component unmounts
       cleanup();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording]);
-
+  }, []);
 
   return (
     <>
@@ -255,10 +223,6 @@ export function RecordingControls({
               </Button>
             </>
           )}
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-4">
-          <span>Shortcut: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> to Record/Stop</span>
-          <span><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> to Screenshot</span>
         </div>
       </div>
     </>
