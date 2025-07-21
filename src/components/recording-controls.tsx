@@ -11,10 +11,12 @@ import { saveFile } from '@/lib/utils';
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
+  onScreenshotComplete: (blob: Blob) => void;
 };
 
 export function RecordingControls({
   onRecordingComplete,
+  onScreenshotComplete,
 }: RecordingControlsProps) {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
@@ -48,13 +50,11 @@ export function RecordingControls({
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: false, // Start with only video from display media
+        audio: false, 
       });
 
       const videoTrack = displayStream.getVideoTracks()[0];
-      videoTrack.onended = () => {
-        handleStopRecording();
-      };
+      videoTrack.onended = handleStopRecording;
       
       const finalStreamTracks = [videoTrack];
 
@@ -142,7 +142,6 @@ export function RecordingControls({
       const imageCapture = new ImageCapture(videoTrack);
       const bitmap = await imageCapture.grabFrame();
       
-      // Stop the stream as soon as we have the frame
       videoTrack.stop();
 
       const canvas = document.createElement('canvas');
@@ -151,25 +150,9 @@ export function RecordingControls({
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(bitmap, 0, 0);
-        canvas.toBlob(async (blob) => {
+        canvas.toBlob((blob) => {
           if (blob) {
-            const timestamp = new Date();
-            const filename = `ScreenSnapp-Screenshot-${timestamp.toISOString()}.png`;
-            try {
-                await saveFile(filename, blob);
-                toast({
-                    title: 'Screenshot Saved',
-                    description: `Your screenshot has been saved as ${filename}.`,
-                });
-            } catch (saveError) {
-                 if ((saveError as Error).name !== 'AbortError') {
-                    toast({
-                        title: 'Error Saving Screenshot',
-                        description: 'Could not save the file. Please try again.',
-                        variant: 'destructive',
-                    });
-                }
-            }
+            onScreenshotComplete(blob);
           }
         }, 'image/png');
       }

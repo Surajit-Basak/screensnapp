@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,14 +8,11 @@ import type { Recording } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { saveFile } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,26 +39,6 @@ export default function DashboardPage() {
       description: '',
     };
     setRecordings((prev) => [newRecording, ...prev]);
-  };
-
-  const handleScreenshotAndSave = async (blob: Blob) => {
-    const timestamp = new Date();
-    const filename = `ScreenSnapp-Screenshot-${timestamp.toISOString()}.png`;
-    try {
-      await saveFile(filename, blob);
-       toast({
-        title: 'Screenshot Saved',
-        description: `Your screenshot has been saved as ${filename}.`,
-      });
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-         toast({
-          title: 'Error Saving Screenshot',
-          description: 'Could not save the file. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    }
   };
 
   const deleteRecording = (id: string) => {
@@ -95,7 +73,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
         <RecordingControls
             onRecordingComplete={(blob) => addRecording(blob, 'video')}
-            onScreenshot={handleScreenshotAndSave}
+            onScreenshotComplete={(blob) => addRecording(blob, 'screenshot')}
         />
         <RecordingsList
             recordings={recordings}

@@ -1,10 +1,11 @@
+
 'use client';
 
 import type { Recording } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Monitor, Camera, Trash2, Video, Save } from 'lucide-react';
+import { Monitor, Camera, Trash2, Save } from 'lucide-react';
 import { saveFile } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,7 +15,7 @@ type RecordingsListProps = {
   onUpdate: (id: string, updates: Partial<Recording>) => void;
 };
 
-function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete: (id: string) => void; onUpdate: (id: string, updates: Partial<Recording>) => void; }) {
+function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete: (id: string) => void; }) {
   const { toast } = useToast();
 
   const handleSave = async () => {
@@ -80,10 +81,10 @@ export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsLis
        <Card className="shadow-lg rounded-xl">
         <CardContent className="p-6 md:p-8">
             <div className="text-center py-16 px-6 border-2 border-dashed rounded-xl">
-                <Video className="mx-auto h-16 w-16 text-muted-foreground" />
-                <h2 className="mt-6 text-2xl font-semibold tracking-tight">No Recordings Yet</h2>
+                <Monitor className="mx-auto h-16 w-16 text-muted-foreground" />
+                <h2 className="mt-6 text-2xl font-semibold tracking-tight">No Captures Yet</h2>
                 <p className="mt-2 text-muted-foreground">
-                Your screen recordings and screenshots will appear here once you create them.
+                    Use the controls above to start a new screen recording or take a screenshot.
                 </p>
             </div>
         </CardContent>
@@ -97,9 +98,9 @@ export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsLis
             <h2 className="text-3xl font-bold tracking-tight">Your Captures</h2>
             <p className="text-muted-foreground">Here are your recent recordings and screenshots.</p>
         </div>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {recordings.map((rec) => (
-          <RecordingCard key={rec.id} recording={rec} onDelete={onDelete} onUpdate={onUpdate}/>
+          <RecordingCard key={rec.id} recording={rec} onDelete={onDelete} />
         ))}
       </div>
     </div>
