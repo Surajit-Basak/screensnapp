@@ -137,11 +137,14 @@ export function RecordingControls({
         throw new Error('No video track found for screenshot.');
       }
 
+      // A small delay to allow the user to switch to the window they want to capture
       setTimeout(async () => {
         try {
+          // ImageCapture is more reliable for grabbing a single frame
           const imageCapture = new ImageCapture(videoTrack);
           const bitmap = await imageCapture.grabFrame();
           
+          // Use a canvas to convert the bitmap to a Blob
           const canvas = document.createElement('canvas');
           canvas.width = bitmap.width;
           canvas.height = bitmap.height;
@@ -156,13 +159,16 @@ export function RecordingControls({
                   description: 'It has been added to your list below.',
                 });
               }
+              // Important: stop the stream tracks once done
               stream.getTracks().forEach((track) => track.stop());
             }, 'image/png');
           } else {
+             // Stop stream even if canvas context fails
              stream.getTracks().forEach((track) => track.stop());
           }
         } catch (captureError) {
            console.error('Error capturing frame:', captureError);
+           // Stop stream on capture error
            stream.getTracks().forEach((track) => track.stop());
            toast({
               title: 'Error capturing screenshot',
@@ -170,11 +176,12 @@ export function RecordingControls({
               variant: 'destructive',
            });
         }
-      }, 200);
+      }, 200); // 200ms delay
 
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
+      // Don't show a toast if the user just cancels the screen selection dialog
       if (error.name !== 'NotAllowedError') {
         toast({
           title: 'Error starting screenshot session',
@@ -205,6 +212,7 @@ export function RecordingControls({
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      // Ensure cleanup runs when the component unmounts
       cleanup();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
