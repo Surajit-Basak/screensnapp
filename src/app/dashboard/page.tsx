@@ -8,31 +8,24 @@ import type { Recording } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/utils';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [dbLoading, setDbLoading] = useState(true);
+  
+  // Use live query to automatically update when db changes
+  const recordings = useLiveQuery(
+    () => user ? db.recordings.where('userId').equals(user.id).reverse().toArray() : [],
+    [user]
+  );
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    async function loadRecordings() {
-        if (user) {
-            setDbLoading(true);
-            const userRecordings = await db.recordings.where('userId').equals(user.id).reverse().toArray();
-            setRecordings(userRecordings);
-            setDbLoading(false);
-        }
-    }
-    loadRecordings();
-  }, [user]);
 
 
   const addRecording = async (blob: Blob, type: 'video' | 'screenshot') => {
@@ -50,15 +43,13 @@ export default function DashboardPage() {
       tags: [],
       description: '',
     };
-
-    const id = await db.recordings.add(newRecording as Recording);
-    const completeRecording = { ...newRecording, id } as Recording;
-    setRecordings((prev) => [completeRecording, ...prev]);
+    
+    // Dexie handles the addition and the live query will update the UI
+    await db.recordings.add(newRecording as Recording);
   };
 
   const deleteRecording = async (id: number) => {
     await db.recordings.delete(id);
-    setRecordings((prev) => prev.filter((rec) => rec.id !== id));
   };
 
   if (loading || !user) {
@@ -75,12 +66,11 @@ export default function DashboardPage() {
     <div className="space-y-8">
         <RecordingControls
             onRecordingComplete={(blob) => addRecording(blob, 'video')}
-            onScreenshotComplete={(blob) => addRecording(blob, 'screenshot')}
         />
         <RecordingsList
-            recordings={recordings}
+            recordings={recordings || []}
             onDelete={deleteRecording}
-            isLoading={dbLoading}
+            isLoading={recordings === undefined}
         />
     </div>
   );

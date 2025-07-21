@@ -7,20 +7,26 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { ScreenshotOverlay } from './screenshot-overlay';
+import { db } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
+
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
-  onScreenshotComplete: (blob: Blob) => void;
 };
 
 export function RecordingControls({
   onRecordingComplete,
-  onScreenshotComplete,
 }: RecordingControlsProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [includeAudio, setIncludeAudio] = useState(true);
+  const [isTakingScreenshot, setIsTakingScreenshot] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+
 
   const mediaStream = useRef<MediaStream | null>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -138,19 +144,15 @@ export function RecordingControls({
     }
   };
 
-  const handleScreenshot = async () => {
-    try {
+  const handleTakeScreenshot = async () => {
+     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const videoTrack = stream.getVideoTracks()[0];
-      
-      // A brief delay to allow the user to switch windows if needed
-      await new Promise(resolve => setTimeout(resolve, 100));
 
       const imageCapture = new ImageCapture(videoTrack);
       const bitmap = await imageCapture.grabFrame();
       
-      // Stop the stream immediately after capture
-      videoTrack.stop();
+      videoTrack.stop(); // Stop the stream immediately after capture
 
       const canvas = document.createElement('canvas');
       canvas.width = bitmap.width;
@@ -158,11 +160,9 @@ export function RecordingControls({
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(bitmap, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            onScreenshotComplete(blob);
-          }
-        }, 'image/png');
+        const url = canvas.toDataURL('image/png');
+        setScreenshotUrl(url);
+        setIsTakingScreenshot(true);
       }
     } catch (err) {
       const error = err as Error;
@@ -181,6 +181,24 @@ export function RecordingControls({
       }
     }
   };
+
+  const handleScreenshotComplete = async (blob: Blob | null) => {
+    setIsTakingScreenshot(false);
+    setScreenshotUrl(null);
+    if (blob && user) {
+        const timestamp = new Date();
+        const filename = `ScreenSnapp-${timestamp.toISOString()}.png`;
+        await db.recordings.add({
+            userId: user.id,
+            type: 'screenshot',
+            blob,
+            filename,
+            timestamp,
+            tags: [],
+            description: '',
+        });
+    }
+  };
   
   useEffect(() => {
     return () => {
@@ -189,38 +207,46 @@ export function RecordingControls({
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6 rounded-xl border p-6 shadow-sm">
-        <h1 className="text-2xl md:text-3xl font-bold text-center tracking-tight">
-          Capture Your Screen Instantly
-        </h1>
-        <div className="flex items-center space-x-2 my-2">
-          <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
-          <Label htmlFor="audio-switch" className="flex items-center gap-2 cursor-pointer">
-            {includeAudio ? <Mic className="w-4 h-4"/> : <MicOff className="w-4 h-4 text-muted-foreground"/>}
-            Include Microphone
-          </Label>
+    <>
+      {isTakingScreenshot && screenshotUrl && (
+        <ScreenshotOverlay
+          imageUrl={screenshotUrl}
+          onComplete={handleScreenshotComplete}
+        />
+      )}
+      <div className="flex flex-col items-center justify-center gap-6 rounded-xl border p-6 shadow-sm">
+          <h1 className="text-2xl md:text-3xl font-bold text-center tracking-tight">
+            Capture Your Screen Instantly
+          </h1>
+          <div className="flex items-center space-x-2 my-2">
+            <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
+            <Label htmlFor="audio-switch" className="flex items-center gap-2 cursor-pointer">
+              {includeAudio ? <Mic className="w-4 h-4"/> : <MicOff className="w-4 h-4 text-muted-foreground"/>}
+              Include Microphone
+            </Label>
+          </div>
+          <div className="flex w-full flex-col sm:flex-row gap-4">
+            {!isRecording ? (
+              <>
+                <Button size="lg" className="flex-1 text-base" onClick={handleStartRecording}>
+                  <Video className="mr-2" /> Record Screen
+                </Button>
+                <Button size="lg" className="flex-1 text-base" variant="outline" onClick={handleTakeScreenshot}>
+                  <Camera className="mr-2" /> Take Screenshot
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="lg" className="flex-1 text-base" variant="destructive" onClick={handleStopRecording}>
+                  <Square className="mr-2 animate-pulse" /> Stop Recording
+                </Button>
+                <Button size="lg" className="flex-1 text-base" variant="secondary" onClick={handlePauseResumeRecording}>
+                  {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />} {isPaused ? 'Resume' : 'Pause'}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex w-full flex-col sm:flex-row gap-4">
-          {!isRecording ? (
-            <>
-              <Button size="lg" className="flex-1 text-base" onClick={handleStartRecording}>
-                <Video className="mr-2" /> Record Screen
-              </Button>
-              <Button size="lg" className="flex-1 text-base" variant="outline" onClick={handleScreenshot}>
-                <Camera className="mr-2" /> Take Screenshot
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button size="lg" className="flex-1 text-base" variant="destructive" onClick={handleStopRecording}>
-                <Square className="mr-2 animate-pulse" /> Stop Recording
-              </Button>
-              <Button size="lg" className="flex-1 text-base" variant="secondary" onClick={handlePauseResumeRecording}>
-                {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />} {isPaused ? 'Resume' : 'Pause'}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+    </>
   );
 }
