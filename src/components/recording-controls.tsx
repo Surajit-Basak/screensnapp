@@ -42,11 +42,8 @@ export function RecordingControls({
   const handleStopRecording = () => {
     if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
       mediaRecorder.current.stop();
-    } else {
-      // This else handles the case where the user stops sharing from the browser UI
-      // which might happen before the recorder is fully stopped.
-      cleanup();
     }
+    // Cleanup is now called in mediaRecorder.onstop to ensure the blob is processed first.
   };
 
   const handleStartRecording = async () => {
@@ -65,6 +62,7 @@ export function RecordingControls({
 
       if (includeAudio) {
         try {
+          // Request microphone audio separately
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTrack = audioStream.getAudioTracks()[0];
           // Add microphone track to the stream
@@ -74,7 +72,7 @@ export function RecordingControls({
           toast({
             title: 'Microphone not found',
             description: 'Recording will continue without microphone audio.',
-            variant: 'destructive',
+            variant: 'default',
           });
         }
       }
@@ -82,9 +80,11 @@ export function RecordingControls({
       mediaStream.current = finalStream;
       recordedChunks.current = [];
       
-      mediaRecorder.current = new MediaRecorder(mediaStream.current, {
-        mimeType: 'video/webm; codecs=vp9',
-      });
+      const options = {
+        mimeType: 'video/webm; codecs=vp9,opus',
+      };
+      
+      mediaRecorder.current = new MediaRecorder(mediaStream.current, options);
 
       mediaRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -95,7 +95,7 @@ export function RecordingControls({
       mediaRecorder.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
         onRecordingComplete(blob);
-        cleanup();
+        cleanup(); // Perform cleanup after the blob has been processed.
       };
 
       mediaRecorder.current.start();
@@ -193,8 +193,7 @@ export function RecordingControls({
   }, []);
 
   return (
-    <>
-      <div className="flex flex-col items-center justify-center gap-6">
+    <div className="flex flex-col items-center justify-center gap-6">
         <h1 className="text-3xl md:text-4xl font-bold text-center tracking-tight">
           Capture Your Screen Instantly
         </h1>
@@ -230,6 +229,5 @@ export function RecordingControls({
           )}
         </div>
       </div>
-    </>
   );
 }
