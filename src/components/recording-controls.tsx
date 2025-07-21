@@ -149,20 +149,26 @@ export function RecordingControls({
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const videoTrack = stream.getVideoTracks()[0];
 
+      // Use ImageCapture to get a bitmap
       const imageCapture = new ImageCapture(videoTrack);
       const bitmap = await imageCapture.grabFrame();
       
-      videoTrack.stop(); // Stop the stream immediately after capture
+      // Stop the stream immediately after capture
+      videoTrack.stop();
 
+      // Draw the bitmap to a canvas to create a "clean" data URL
       const canvas = document.createElement('canvas');
       canvas.width = bitmap.width;
       canvas.height = bitmap.height;
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(bitmap, 0, 0);
+        // This data URL is now safe to use in the cropper
         const url = canvas.toDataURL('image/png');
         setScreenshotUrl(url);
         setIsTakingScreenshot(true);
+      } else {
+          throw new Error("Could not get canvas context");
       }
     } catch (err) {
       const error = err as Error;
