@@ -14,8 +14,9 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { FolderUp } from 'lucide-react';
+import { FolderUp, Info } from 'lucide-react';
 import { useDirectoryPicker } from '@/hooks/use-directory-picker';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SettingsPage() {
   const { user, loading } = useAuth();
@@ -95,14 +96,18 @@ export default function SettingsPage() {
                                     <span className="font-semibold">Current Folder:</span> {dirHandle ? <strong>{dirHandle.name}</strong> : 'Browser Default (Downloads)'}
                                 </p>
                                 <p>
-                                    Your browser will ask for one-time permission to access the folder you choose. The app will then be able to save files directly there. You can change this at any time. If no folder is selected, files will be downloaded via the standard browser dialog.
+                                    Your browser will ask for permission to access the folder you choose. The app will then save files there directly. You can change this at any time. If no folder is selected, files will download normally.
                                 </p>
                             </div>
                         </div>
                     ) : (
-                         <p className="text-sm text-muted-foreground">
-                            Your browser does not support direct folder access. Files will be saved to your browser's default "Downloads" folder, and you will be prompted for each save. For the best experience, please use a modern browser like Google Chrome or Microsoft Edge.
-                        </p>
+                         <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>Browser Not Supported</AlertTitle>
+                            <AlertDescription>
+                                Your browser does not support direct folder access. For the best experience, please use a modern browser like Google Chrome or Microsoft Edge. Files will be saved to your browser's default "Downloads" folder.
+                            </AlertDescription>
+                        </Alert>
                     )}
                 </CardContent>
             </Card>

@@ -1,10 +1,27 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { getDirHandle } from "@/hooks/use-directory-picker";
+import Dexie, { type Table } from 'dexie';
+import type { Recording } from './types';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+class RecordingsDB extends Dexie {
+    recordings!: Table<Recording>;
+
+    constructor() {
+        super('ScreenSnappDB');
+        this.version(1).stores({
+            recordings: '++id, userId, blob, filename, timestamp',
+        });
+    }
+}
+
+export const db = new RecordingsDB();
+
 
 /**
  * Saves a file to the user's chosen directory or falls back to standard download.

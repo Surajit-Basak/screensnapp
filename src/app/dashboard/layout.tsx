@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/header';
-import { Button } from '@/components/ui/button';
-import { Home, Settings, UserCircle } from 'lucide-react';
+import { Home, Settings } from 'lucide-react';
 
 const sidebarNavItems = [
     {
@@ -23,12 +22,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   return (
-    <>
+    <div className="flex min-h-screen w-full flex-col">
       <Header />
-      <div className="container flex-1 items-start md:grid md:grid-cols-[220px_1fr] md:gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
-        <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 md:sticky md:block">
-            <div className="h-full py-6 pr-6 md:py-8">
-               <nav className="relative flex flex-col gap-2">
+      <div className="flex flex-1">
+        <aside className="hidden w-64 flex-col border-r bg-muted/40 p-4 md:flex">
+          <nav className="flex flex-col gap-2 font-medium">
                  {sidebarNavItems.map((item, index) => (
                     <Link
                         key={index}
@@ -42,13 +40,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {item.title}
                     </Link>
                     ))}
-               </nav>
-            </div>
+          </nav>
         </aside>
-        <main className="flex w-full flex-col overflow-hidden py-6 md:py-8">
+        <main className="flex w-full flex-col overflow-auto p-4 md:p-8">
             {children}
         </main>
       </div>
-    </>
+    </div>
   );
 }

@@ -4,19 +4,20 @@
 import type { Recording } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Monitor, Camera, Trash2, Save } from 'lucide-react';
 import { saveFile } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from './ui/skeleton';
 
 type RecordingsListProps = {
   recordings: Recording[];
-  onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<Recording>) => void;
+  onDelete: (id: number) => void;
+  isLoading: boolean;
 };
 
-function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete: (id: string) => void; }) {
+function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete: (id: number) => void; }) {
   const { toast } = useToast();
+  const objectUrl = URL.createObjectURL(recording.blob);
 
   const handleSave = async () => {
     try {
@@ -40,9 +41,9 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
     <Card className="overflow-hidden shadow-md transition-all hover:shadow-xl">
       <CardContent className="p-0">
         {recording.type === 'video' ? (
-          <video src={recording.url} controls className="aspect-video w-full bg-muted" />
+          <video src={objectUrl} controls className="aspect-video w-full bg-muted" />
         ) : (
-          <img src={recording.url} alt={recording.filename} className="aspect-video w-full object-cover bg-muted" data-ai-hint="user interface" />
+          <img src={objectUrl} alt={recording.filename} className="aspect-video w-full object-cover bg-muted" data-ai-hint="user interface" />
         )}
       </CardContent>
       <CardHeader className="p-4">
@@ -55,13 +56,8 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
           <span className="truncate">{recording.filename}</span>
         </CardTitle>
         <div className="text-xs text-muted-foreground">
-          {recording.timestamp.toLocaleString()}
+          {new Date(recording.timestamp).toLocaleString()}
         </div>
-        {recording.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
-                {recording.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-            </div>
-        )}
       </CardHeader>
       <CardFooter className="bg-muted/50 p-4 flex flex-col sm:flex-row gap-2 justify-end">
         <Button variant="outline" size="sm" onClick={handleSave}>
@@ -75,7 +71,35 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
   );
 }
 
-export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsListProps) {
+export function RecordingsList({ recordings, onDelete, isLoading }: RecordingsListProps) {
+  if (isLoading) {
+    return (
+        <div>
+            <div className="pb-4 border-b mb-6">
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-4 w-1/2 mt-2" />
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                        <CardContent className="p-0">
+                            <Skeleton className="aspect-video w-full" />
+                        </CardContent>
+                        <CardHeader className="p-4">
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-1/2 mt-2" />
+                        </CardHeader>
+                        <CardFooter className="bg-muted/50 p-4 flex justify-end gap-2">
+                            <Skeleton className="h-9 w-20" />
+                            <Skeleton className="h-9 w-24" />
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    );
+  }
+
   if (recordings.length === 0) {
     return (
        <Card className="shadow-lg rounded-xl">
@@ -96,7 +120,7 @@ export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsLis
     <div>
        <div className="pb-4 border-b mb-6">
             <h2 className="text-3xl font-bold tracking-tight">Your Captures</h2>
-            <p className="text-muted-foreground">Here are your recent recordings and screenshots.</p>
+            <p className="text-muted-foreground">Here are your recent recordings and screenshots, saved in your browser.</p>
         </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {recordings.map((rec) => (

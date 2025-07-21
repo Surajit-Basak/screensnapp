@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { saveFile } from '@/lib/utils';
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
@@ -50,17 +49,25 @@ export function RecordingControls({
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: false, 
+        audio: true, // Request system audio as well
       });
 
       const videoTrack = displayStream.getVideoTracks()[0];
-      videoTrack.onended = handleStopRecording;
+      // This is the key! Listen for when the user stops sharing via browser UI
+      videoTrack.onended = () => {
+        handleStopRecording();
+      };
       
       const finalStreamTracks = [videoTrack];
+      
+      // If system audio was granted, add it
+      if (displayStream.getAudioTracks().length > 0) {
+        finalStreamTracks.push(displayStream.getAudioTracks()[0]);
+      }
 
       if (includeAudio) {
         try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           const audioTrack = audioStream.getAudioTracks()[0];
           finalStreamTracks.push(audioTrack);
         } catch (audioError) {
@@ -111,7 +118,7 @@ export function RecordingControls({
       } else {
         toast({
           title: 'Error starting recording',
-          description: error.message || 'Please ensure you have granted screen permissions.',
+          description: error.message || 'An unexpected error occurred.',
           variant: 'destructive',
         });
       }
@@ -142,6 +149,7 @@ export function RecordingControls({
       const imageCapture = new ImageCapture(videoTrack);
       const bitmap = await imageCapture.grabFrame();
       
+      // Stop the stream immediately after capture
       videoTrack.stop();
 
       const canvas = document.createElement('canvas');

@@ -1,18 +1,20 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RecordingControls } from '@/components/recording-controls';
 import { RecordingsList } from '@/components/recordings-list';
 import type { Recording } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { db } from '@/lib/utils';
+
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [dbLoading, setDbLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -20,43 +22,43 @@ export default function DashboardPage() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    async function loadRecordings() {
+        if (user) {
+            setDbLoading(true);
+            const userRecordings = await db.recordings.where('userId').equals(user.id).reverse().toArray();
+            setRecordings(userRecordings);
+            setDbLoading(false);
+        }
+    }
+    loadRecordings();
+  }, [user]);
 
-  const addRecording = (blob: Blob, type: 'video' | 'screenshot') => {
-    const id = crypto.randomUUID();
+
+  const addRecording = async (blob: Blob, type: 'video' | 'screenshot') => {
+    if (!user) return;
     const timestamp = new Date();
     const extension = type === 'video' ? 'webm' : 'png';
     const filename = `ScreenSnapp-${timestamp.toISOString()}.${extension}`;
-    const url = URL.createObjectURL(blob);
 
-    const newRecording: Recording = {
-      id,
+    const newRecording: Omit<Recording, 'id'> = {
+      userId: user.id,
       type,
       blob,
-      url,
       filename,
       timestamp,
       tags: [],
       description: '',
     };
-    setRecordings((prev) => [newRecording, ...prev]);
+
+    const id = await db.recordings.add(newRecording as Recording);
+    const completeRecording = { ...newRecording, id } as Recording;
+    setRecordings((prev) => [completeRecording, ...prev]);
   };
 
-  const deleteRecording = (id: string) => {
-    setRecordings((prev) =>
-      prev.filter((rec) => {
-        if (rec.id === id) {
-          URL.revokeObjectURL(rec.url);
-          return false;
-        }
-        return true;
-      })
-    );
-  };
-
-  const updateRecording = (id: string, updates: Partial<Recording>) => {
-    setRecordings((prev) =>
-      prev.map((rec) => (rec.id === id ? { ...rec, ...updates } : rec))
-    );
+  const deleteRecording = async (id: number) => {
+    await db.recordings.delete(id);
+    setRecordings((prev) => prev.filter((rec) => rec.id !== id));
   };
 
   if (loading || !user) {
@@ -78,7 +80,7 @@ export default function DashboardPage() {
         <RecordingsList
             recordings={recordings}
             onDelete={deleteRecording}
-            onUpdate={updateRecording}
+            isLoading={dbLoading}
         />
     </div>
   );
