@@ -33,13 +33,15 @@ export async function saveFile(filename: string, data: Blob) {
     
     if (dirHandle) {
         try {
-            // Check for permission first
-            if ((await dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
-                // Request permission if not granted
-                if ((await dirHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') {
+            // Check for permission first, and request it if it's not granted.
+            const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
+            if (permission !== 'granted') {
+                const newPermission = await dirHandle.requestPermission({ mode: 'readwrite' });
+                if (newPermission !== 'granted') {
                     throw new Error('Permission to write to this directory was denied.');
                 }
             }
+            
             const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(data);
@@ -47,7 +49,8 @@ export async function saveFile(filename: string, data: Blob) {
             return; // Exit function after successful save
         } catch (error) {
             console.error("Could not save to chosen directory, falling back to download.", error);
-            // If any error occurs with the directory handle, fall back to the download method.
+            // If any error occurs with the directory handle (e.g., permission denied),
+            // fall back to the download method.
         }
     }
 
