@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -43,17 +42,15 @@ export function RecordingControls({
     if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
       mediaRecorder.current.stop();
     }
-    // Cleanup is now called in mediaRecorder.onstop to ensure the blob is processed first.
   };
 
   const handleStartRecording = async () => {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: includeAudio, // Request system audio if checkbox is checked
+        audio: includeAudio,
       });
 
-      // This listener is crucial. It detects when the user clicks the "Stop sharing" button in the browser's UI.
       displayStream.getVideoTracks()[0].onended = () => {
         handleStopRecording();
       };
@@ -62,10 +59,8 @@ export function RecordingControls({
 
       if (includeAudio) {
         try {
-          // Request microphone audio separately
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTrack = audioStream.getAudioTracks()[0];
-          // Add microphone track to the stream
           finalStream.addTrack(audioTrack);
         } catch (audioError) {
           console.warn('Could not get microphone audio.', audioError);
@@ -95,7 +90,7 @@ export function RecordingControls({
       mediaRecorder.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
         onRecordingComplete(blob);
-        cleanup(); // Perform cleanup after the blob has been processed.
+        cleanup();
       };
 
       mediaRecorder.current.start();
@@ -103,7 +98,7 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error starting recording:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') { // Don't show toast if user just cancels
+      if (error.name !== 'NotAllowedError') {
         toast({
           title: 'Error starting recording',
           description: error.message || 'Please ensure you have granted screen permissions.',
@@ -132,7 +127,6 @@ export function RecordingControls({
       const videoTrack = stream.getVideoTracks()[0];
 
         try {
-          // ImageCapture is more reliable for grabbing a single frame
           const imageCapture = new ImageCapture(videoTrack);
           const bitmap = await imageCapture.grabFrame();
           
@@ -145,21 +139,14 @@ export function RecordingControls({
             canvas.toBlob((blob) => {
               if (blob) {
                 onScreenshot(blob);
-                toast({
-                  title: 'Screenshot captured!',
-                  description: 'It has been added to your list below.',
-                });
               }
-              // Important: stop the stream tracks once done
               stream.getTracks().forEach((track) => track.stop());
             }, 'image/png');
           } else {
-            // Stop stream if canvas context fails
             stream.getTracks().forEach((track) => track.stop());
           }
         } catch (captureError) {
            console.error('Error capturing frame:', captureError);
-           // Stop stream on error
            stream.getTracks().forEach((track) => track.stop());
            toast({
               title: 'Error capturing screenshot',
@@ -170,7 +157,7 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') { // Don't show toast if user cancels
+      if (error.name !== 'NotAllowedError') {
         toast({
           title: 'Error starting screenshot session',
           description: error.message || 'Please ensure you have granted screen permissions.',
@@ -180,23 +167,18 @@ export function RecordingControls({
     }
   };
   
-  // Effect for component cleanup
   useEffect(() => {
     return () => {
-      // Ensure cleanup runs when the component unmounts to prevent memory leaks
       cleanup();
     }
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl md:text-4xl font-bold text-center tracking-tight">
+    <div className="flex flex-col items-center justify-center gap-6 rounded-xl border p-6 shadow-sm">
+        <h1 className="text-2xl md:text-3xl font-bold text-center tracking-tight">
           Capture Your Screen Instantly
         </h1>
-        <p className="text-muted-foreground text-center max-w-md">
-          Record videos or take screenshots with a single click. Your captures appear below.
-        </p>
-        <div className="flex items-center space-x-2 my-4">
+        <div className="flex items-center space-x-2 my-2">
           <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
           <Label htmlFor="audio-switch" className="flex items-center gap-2 cursor-pointer">
             {includeAudio ? <Mic className="w-4 h-4"/> : <MicOff className="w-4 h-4 text-muted-foreground"/>}

@@ -4,7 +4,9 @@ import type { Recording } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Download, Monitor, Camera, Trash2, Video, Save } from 'lucide-react';
+import { Monitor, Camera, Trash2, Video, Save } from 'lucide-react';
+import { saveFile } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type RecordingsListProps = {
   recordings: Recording[];
@@ -13,6 +15,25 @@ type RecordingsListProps = {
 };
 
 function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete: (id: string) => void; onUpdate: (id: string, updates: Partial<Recording>) => void; }) {
+  const { toast } = useToast();
+
+  const handleSave = async () => {
+    try {
+        await saveFile(recording.filename, recording.blob);
+        toast({
+            title: "File Saved",
+            description: `${recording.filename} has been saved.`,
+        });
+    } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+             toast({
+                title: 'Error Saving File',
+                description: 'Could not save the file. Please try again.',
+                variant: 'destructive',
+            });
+        }
+    }
+  };
 
   return (
     <Card className="overflow-hidden shadow-md transition-all hover:shadow-xl">
@@ -42,10 +63,8 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
         )}
       </CardHeader>
       <CardFooter className="bg-muted/50 p-4 flex flex-col sm:flex-row gap-2 justify-end">
-        <Button variant="outline" size="sm" asChild>
-          <a href={recording.url} download={recording.filename}>
+        <Button variant="outline" size="sm" onClick={handleSave}>
             <Save className="mr-2 h-4 w-4" /> Save
-          </a>
         </Button>
         <Button variant="destructive" size="sm" onClick={() => onDelete(recording.id)}>
           <Trash2 className="mr-2 h-4 w-4" /> Delete
