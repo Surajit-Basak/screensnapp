@@ -1,55 +1,60 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { AuthUser, AuthError, SignInWithPasswordCredentials } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 
-interface User {
-  name: string;
-  email: string;
-}
+interface User extends AuthUser {}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
+  login: (email:string, password:string) => Promise<{ error: AuthError | null }>;
+  logout: () => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// A key for storing auth state in sessionStorage
-const AUTH_STORAGE_KEY = 'screensnapp.auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to load user from sessionStorage on initial load
-    try {
-      const storedUser = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error("Failed to parse auth state from sessionStorage", error);
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    } finally {
-      setLoading(false);
+    const getSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        setLoading(false);
     }
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+    });
+
+    return () => {
+        subscription.unsubscribe();
+    };
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+  const login = async (email:string, password:string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
   };
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
