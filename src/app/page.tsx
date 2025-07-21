@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
@@ -18,8 +19,7 @@ export default function LandingPage() {
             Capture Your Screen with One Click
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            ScreenSnapp is the simplest way to record your screen or take instant
-            screenshots. Secure, private, and blazingly fast.
+            ScreenSnapp is the simplest way to record your screen. Secure, private, and blazingly fast.
           </p>
           <div className="flex justify-center gap-4">
             <Button asChild size="lg">
@@ -52,7 +52,7 @@ export default function LandingPage() {
                 Our focused feature set makes screen capturing a breeze.
               </p>
             </div>
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg shadow-sm">
                 <div className="p-3 bg-primary/10 rounded-full mb-4">
                    <Monitor className="w-8 h-8 text-primary" />
@@ -60,15 +60,6 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold mb-2">Screen Recording</h3>
                 <p className="text-muted-foreground">
                   Record your entire screen or a specific application with optional microphone audio. Perfect for tutorials and demos.
-                </p>
-              </div>
-              <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg shadow-sm">
-                 <div className="p-3 bg-primary/10 rounded-full mb-4">
-                   <Camera className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Screenshots</h3>
-                <p className="text-muted-foreground">
-                  Quickly capture a snapshot of your screen. Ideal for sharing information or documenting issues.
                 </p>
               </div>
               <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg shadow-sm">
