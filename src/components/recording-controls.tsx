@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -52,7 +53,7 @@ export function RecordingControls({
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: includeAudio, // Request system audio
+        audio: includeAudio, // Request system audio if checkbox is checked
       });
 
       // This listener is crucial. It detects when the user clicks the "Stop sharing" button in the browser's UI.
@@ -133,6 +134,7 @@ export function RecordingControls({
       // A small delay to allow the user to switch to the window they want to capture
       setTimeout(async () => {
         try {
+          // ImageCapture is more reliable for grabbing a single frame
           const imageCapture = new ImageCapture(videoTrack);
           const bitmap = await imageCapture.grabFrame();
           
@@ -154,10 +156,12 @@ export function RecordingControls({
               stream.getTracks().forEach((track) => track.stop());
             }, 'image/png');
           } else {
+            // Stop stream if canvas context fails
             stream.getTracks().forEach((track) => track.stop());
           }
         } catch (captureError) {
            console.error('Error capturing frame:', captureError);
+           // Stop stream on error
            stream.getTracks().forEach((track) => track.stop());
            toast({
               title: 'Error capturing screenshot',
@@ -170,7 +174,7 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') {
+      if (error.name !== 'NotAllowedError') { // Don't show toast if user cancels
         toast({
           title: 'Error starting screenshot session',
           description: error.message || 'Please ensure you have granted screen permissions.',
@@ -180,9 +184,10 @@ export function RecordingControls({
     }
   };
   
+  // Effect for component cleanup
   useEffect(() => {
     return () => {
-      // Ensure cleanup runs when the component unmounts
+      // Ensure cleanup runs when the component unmounts to prevent memory leaks
       cleanup();
     }
   }, []);
