@@ -8,6 +8,7 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Header } from '@/components/header';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -73,15 +74,21 @@ export default function DashboardPage() {
     <>
       <Header />
       <main className="flex-1">
-        <RecordingControls
-          onRecordingComplete={(blob) => addRecording(blob, 'video')}
-          onScreenshot={(blob) => addRecording(blob, 'screenshot')}
-        />
-        <RecordingsList
-          recordings={recordings}
-          onDelete={deleteRecording}
-          onUpdate={updateRecording}
-        />
+        <div className="container mx-auto max-w-5xl py-8">
+            <Card className="shadow-lg rounded-xl">
+                <CardContent className="p-6 md:p-8">
+                    <RecordingControls
+                      onRecordingComplete={(blob) => addRecording(blob, 'video')}
+                      onScreenshot={(blob) => addRecording(blob, 'screenshot')}
+                    />
+                    <RecordingsList
+                      recordings={recordings}
+                      onDelete={deleteRecording}
+                      onUpdate={updateRecording}
+                    />
+                </CardContent>
+            </Card>
+        </div>
       </main>
     </>
   );

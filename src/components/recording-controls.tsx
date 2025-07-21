@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Mic, MicOff, Monitor, Pause, Play, Square, Video } from 'lucide-react';
+import { Camera, Mic, MicOff, Pause, Play, Square, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { Separator } from './ui/separator';
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
@@ -207,51 +207,48 @@ export function RecordingControls({
 
 
   return (
-    <div className="container max-w-screen-md py-8">
-      <Card className="shadow-lg rounded-xl">
-        <CardContent className="p-6 md:p-8">
-          <div className="flex flex-col items-center justify-center gap-6">
-            <h1 className="text-3xl md:text-4xl font-bold text-center tracking-tight">
-              Capture Your Screen Instantly
-            </h1>
-            <p className="text-muted-foreground text-center max-w-md">
-              Record videos or take screenshots with a single click. High-quality, fast, and all in your browser.
-            </p>
-            <div className="flex items-center space-x-2 my-4">
-              <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
-              <Label htmlFor="audio-switch" className="flex items-center gap-2 cursor-pointer">
-                {includeAudio ? <Mic className="w-4 h-4"/> : <MicOff className="w-4 h-4 text-muted-foreground"/>}
-                Include Microphone
-              </Label>
-            </div>
-            <div className="flex w-full flex-col sm:flex-row gap-4">
-              {!isRecording ? (
-                <>
-                  <Button size="lg" className="flex-1 text-base" onClick={handleStartRecording}>
-                    <Video className="mr-2" /> Record Screen
-                  </Button>
-                  <Button size="lg" className="flex-1 text-base" variant="outline" onClick={handleScreenshot}>
-                    <Camera className="mr-2" /> Take Screenshot
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button size="lg" className="flex-1 text-base" variant="destructive" onClick={handleStopRecording}>
-                    <Square className="mr-2 animate-pulse" /> Stop Recording
-                  </Button>
-                  <Button size="lg" className="flex-1 text-base" variant="secondary" onClick={handlePauseResumeRecording}>
-                    {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />} {isPaused ? 'Resume' : 'Pause'}
-                  </Button>
-                </>
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-4">
-              <span>Shortcut: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> to Record/Stop</span>
-              <span><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> to Screenshot</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <div className="flex flex-col items-center justify-center gap-6">
+        <h1 className="text-3xl md:text-4xl font-bold text-center tracking-tight">
+          Capture Your Screen Instantly
+        </h1>
+        <p className="text-muted-foreground text-center max-w-md">
+          Record videos or take screenshots with a single click. High-quality, fast, and all in your browser.
+        </p>
+        <div className="flex items-center space-x-2 my-4">
+          <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
+          <Label htmlFor="audio-switch" className="flex items-center gap-2 cursor-pointer">
+            {includeAudio ? <Mic className="w-4 h-4"/> : <MicOff className="w-4 h-4 text-muted-foreground"/>}
+            Include Microphone
+          </Label>
+        </div>
+        <div className="flex w-full flex-col sm:flex-row gap-4">
+          {!isRecording ? (
+            <>
+              <Button size="lg" className="flex-1 text-base" onClick={handleStartRecording}>
+                <Video className="mr-2" /> Record Screen
+              </Button>
+              <Button size="lg" className="flex-1 text-base" variant="outline" onClick={handleScreenshot}>
+                <Camera className="mr-2" /> Take Screenshot
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="lg" className="flex-1 text-base" variant="destructive" onClick={handleStopRecording}>
+                <Square className="mr-2 animate-pulse" /> Stop Recording
+              </Button>
+              <Button size="lg" className="flex-1 text-base" variant="secondary" onClick={handlePauseResumeRecording}>
+                {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />} {isPaused ? 'Resume' : 'Pause'}
+              </Button>
+            </>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-4">
+          <span>Shortcut: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> to Record/Stop</span>
+          <span><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> to Screenshot</span>
+        </div>
+      </div>
+      <Separator className="my-8" />
+    </>
   );
 }

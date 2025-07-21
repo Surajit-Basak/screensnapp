@@ -4,7 +4,7 @@ import type { Recording } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Download, Monitor, Camera, Trash2 } from 'lucide-react';
+import { Download, Monitor, Camera, Trash2, Video } from 'lucide-react';
 
 type RecordingsListProps = {
   recordings: Recording[];
@@ -58,18 +58,18 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
 export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsListProps) {
   if (recordings.length === 0) {
     return (
-      <div className="container max-w-screen-lg py-16 text-center">
-        <Monitor className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h2 className="mt-4 text-xl font-semibold">No Recordings Yet</h2>
+      <div className="text-center py-16 px-6 border-2 border-dashed rounded-xl">
+        <Video className="mx-auto h-16 w-16 text-muted-foreground" />
+        <h2 className="mt-6 text-2xl font-semibold tracking-tight">No Recordings Yet</h2>
         <p className="mt-2 text-muted-foreground">
-          Your screen recordings and screenshots will appear here.
+          Your screen recordings and screenshots will appear here once you create them.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-screen-lg py-8">
+    <div>
        <div className="pb-4 border-b mb-6">
             <h2 className="text-3xl font-bold tracking-tight">Your Captures</h2>
             <p className="text-muted-foreground">Here are your recent recordings and screenshots.</p>
