@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { AuthUser, AuthError, SignInWithPasswordCredentials } from '@supabase/supabase-js';
+import type { AuthUser, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 
 interface User extends AuthUser {}
