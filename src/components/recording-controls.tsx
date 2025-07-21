@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -6,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { saveFile } from '@/lib/utils';
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
-  onScreenshot: (blob: Blob) => void;
 };
 
 export function RecordingControls({
   onRecordingComplete,
-  onScreenshot,
 }: RecordingControlsProps) {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
@@ -48,30 +48,35 @@ export function RecordingControls({
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' },
-        audio: includeAudio,
+        audio: false, // Start with only video from display media
       });
 
-      displayStream.getVideoTracks()[0].onended = () => {
+      const videoTrack = displayStream.getVideoTracks()[0];
+      videoTrack.onended = () => {
         handleStopRecording();
       };
       
-      let finalStream: MediaStream = displayStream;
+      const finalStreamTracks = [videoTrack];
 
       if (includeAudio) {
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTrack = audioStream.getAudioTracks()[0];
-          finalStream.addTrack(audioTrack);
+          finalStreamTracks.push(audioTrack);
         } catch (audioError) {
           console.warn('Could not get microphone audio.', audioError);
-          toast({
-            title: 'Microphone not found',
-            description: 'Recording will continue without microphone audio.',
-            variant: 'default',
-          });
+          const error = audioError as Error;
+          if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
+             toast({
+                title: 'Microphone permission denied',
+                description: 'Recording will continue without microphone audio.',
+                variant: 'default',
+            });
+          }
         }
       }
 
+      const finalStream = new MediaStream(finalStreamTracks);
       mediaStream.current = finalStream;
       recordedChunks.current = [];
       
@@ -96,9 +101,14 @@ export function RecordingControls({
       mediaRecorder.current.start();
       setIsRecording(true);
     } catch (err) {
-      console.error('Error starting recording:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') {
+       if (error.name === 'NotAllowedError') {
+        toast({
+          title: 'Permission Denied',
+          description: 'Screen recording permission is required to use this feature.',
+          variant: 'destructive',
+        });
+      } else {
         toast({
           title: 'Error starting recording',
           description: error.message || 'Please ensure you have granted screen permissions.',
@@ -125,42 +135,56 @@ export function RecordingControls({
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const videoTrack = stream.getVideoTracks()[0];
+      
+      // A brief delay to allow the user to switch windows if needed
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-        try {
-          const imageCapture = new ImageCapture(videoTrack);
-          const bitmap = await imageCapture.grabFrame();
-          
-          const canvas = document.createElement('canvas');
-          canvas.width = bitmap.width;
-          canvas.height = bitmap.height;
-          const context = canvas.getContext('2d');
-          if (context) {
-            context.drawImage(bitmap, 0, 0);
-            canvas.toBlob((blob) => {
-              if (blob) {
-                onScreenshot(blob);
-              }
-              stream.getTracks().forEach((track) => track.stop());
-            }, 'image/png');
-          } else {
-            stream.getTracks().forEach((track) => track.stop());
+      const imageCapture = new ImageCapture(videoTrack);
+      const bitmap = await imageCapture.grabFrame();
+      
+      // Stop the stream as soon as we have the frame
+      videoTrack.stop();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(bitmap, 0, 0);
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const timestamp = new Date();
+            const filename = `ScreenSnapp-Screenshot-${timestamp.toISOString()}.png`;
+            try {
+                await saveFile(filename, blob);
+                toast({
+                    title: 'Screenshot Saved',
+                    description: `Your screenshot has been saved as ${filename}.`,
+                });
+            } catch (saveError) {
+                 if ((saveError as Error).name !== 'AbortError') {
+                    toast({
+                        title: 'Error Saving Screenshot',
+                        description: 'Could not save the file. Please try again.',
+                        variant: 'destructive',
+                    });
+                }
+            }
           }
-        } catch (captureError) {
-           console.error('Error capturing frame:', captureError);
-           stream.getTracks().forEach((track) => track.stop());
-           toast({
-              title: 'Error capturing screenshot',
-              description: 'Could not capture the image from the screen.',
-              variant: 'destructive',
-           });
-        }
+        }, 'image/png');
+      }
     } catch (err) {
-      console.error('Error taking screenshot:', err);
       const error = err as Error;
-      if (error.name !== 'NotAllowedError') {
+      if (error.name === 'NotAllowedError') {
         toast({
-          title: 'Error starting screenshot session',
-          description: error.message || 'Please ensure you have granted screen permissions.',
+          title: 'Permission Denied',
+          description: 'Screen sharing permission is required to take a screenshot.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error Taking Screenshot',
+          description: error.message || 'An unexpected error occurred.',
           variant: 'destructive',
         });
       }
