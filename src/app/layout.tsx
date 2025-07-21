@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 import { Inter } from 'next/font/google';
+import { useState, useEffect } from 'react';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -26,6 +27,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
@@ -35,7 +42,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <div className="flex flex-col min-h-screen">
-                {children}
+                {isMounted ? children : null}
             </div>
             <Toaster />
           </AuthProvider>
