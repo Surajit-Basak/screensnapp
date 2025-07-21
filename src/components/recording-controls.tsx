@@ -123,48 +123,58 @@ export function RecordingControls({
 
   const handleScreenshot = async () => {
     try {
-      const stream = isRecording && mediaStream.current
-        ? mediaStream.current
-        : await navigator.mediaDevices.getDisplayMedia({ video: true });
-
-      if (!stream) {
-        throw new Error('Could not get media stream for screenshot.');
-      }
+      // For a simple screenshot, we don't need to maintain the stream if not recording.
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       
       const videoTrack = stream.getVideoTracks()[0];
       if (!videoTrack) {
         throw new Error('No video track found for screenshot.');
       }
 
-      const imageCapture = new ImageCapture(videoTrack);
-      const bitmap = await imageCapture.grabFrame();
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const context = canvas.getContext('2d');
-      if(context) {
-        context.drawImage(bitmap, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            onScreenshot(blob);
-            toast({
-              title: 'Screenshot captured!',
-              description: 'It has been added to your list below.',
-            });
+      // Use a brief delay to allow the user to switch to the desired window
+      // after granting permission, as the permission dialog itself might be captured.
+      setTimeout(async () => {
+        try {
+          const imageCapture = new ImageCapture(videoTrack);
+          const bitmap = await imageCapture.grabFrame();
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          const context = canvas.getContext('2d');
+          if(context) {
+            context.drawImage(bitmap, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                onScreenshot(blob);
+                toast({
+                  title: 'Screenshot captured!',
+                  description: 'It has been added to your list below.',
+                });
+              }
+              // Stop the tracks immediately after capture
+              stream.getTracks().forEach((track) => track.stop());
+            }, 'image/png');
+          } else {
+             stream.getTracks().forEach((track) => track.stop());
           }
-           // if not currently recording, stop the tracks
-          if(!isRecording) {
-            stream.getTracks().forEach((track) => track.stop());
-          }
-        }, 'image/png');
-      }
+        } catch (captureError) {
+           console.error('Error capturing frame:', captureError);
+           stream.getTracks().forEach((track) => track.stop());
+           toast({
+              title: 'Error capturing screenshot',
+              description: 'Could not capture the image from the screen.',
+              variant: 'destructive',
+           });
+        }
+      }, 200);
+
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
       toast({
-        title: 'Error taking screenshot',
-        description: error.message || 'Please ensure you have granted permissions.',
+        title: 'Error starting screenshot session',
+        description: error.message || 'Please ensure you have granted screen permissions.',
         variant: 'destructive',
       });
     }
@@ -172,11 +182,13 @@ export function RecordingControls({
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if(e.ctrlKey && e.shiftKey && e.key === 'S'){
+      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's'){
         e.preventDefault();
-        handleScreenshot();
+        if (!isRecording) { // Only allow screenshot if not already recording
+          handleScreenshot();
+        }
       }
-      if(e.ctrlKey && e.shiftKey && e.key === 'R'){
+      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'r'){
         e.preventDefault();
         if(isRecording) {
           handleStopRecording();
@@ -188,8 +200,10 @@ export function RecordingControls({
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      cleanup(); // Cleanup on component unmount
     }
-  }, [isRecording, handleScreenshot, handleStartRecording, handleStopRecording]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
 
 
   return (
