@@ -15,15 +15,11 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { FolderUp, Info } from 'lucide-react';
-import { useDirectoryPicker } from '@/hooks/use-directory-picker';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SettingsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { dirHandle, selectDirectory, isSupported } = useDirectoryPicker();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -75,41 +71,6 @@ export default function SettingsPage() {
                     <Button type="submit">Save Changes</Button>
                 </CardFooter>
             </form>
-        </Card>
-
-        <Card className="shadow-sm">
-            <CardHeader>
-                <CardTitle>Save Location</CardTitle>
-                <CardDescription>
-                    Choose a default folder on your computer to save recordings and screenshots.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isSupported ? (
-                    <div className="flex flex-col gap-4">
-                        <Button variant="outline" onClick={selectDirectory}>
-                            <FolderUp className="mr-2 h-4 w-4" />
-                            Select Save Folder
-                        </Button>
-                        <div className="text-sm text-muted-foreground space-y-2 rounded-md border bg-muted p-4">
-                            <p>
-                                <span className="font-semibold">Current Folder:</span> {dirHandle ? <strong>{dirHandle.name}</strong> : 'Browser Default (Downloads)'}
-                            </p>
-                            <p>
-                                Your browser will ask for permission to access the folder you choose. The app will then save files there directly. You can change this at any time. If no folder is selected, files will download normally.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                     <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Browser Not Supported</AlertTitle>
-                        <AlertDescription>
-                            Your browser does not support direct folder access. For the best experience, please use a modern browser like Google Chrome or Microsoft Edge. Files will be saved to your browser's default "Downloads" folder.
-                        </AlertDescription>
-                    </Alert>
-                )}
-            </CardContent>
         </Card>
     </div>
   );
