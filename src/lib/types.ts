@@ -1,7 +1,7 @@
 export type Recording = {
   id: number;
   userId: string;
-  type: 'video' | 'screenshot';
+  type: 'video';
   blob: Blob;
   filename: string;
   timestamp: Date;

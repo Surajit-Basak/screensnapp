@@ -28,15 +28,15 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
 
-  const addRecording = async (blob: Blob, type: 'video' | 'screenshot') => {
+  const addRecording = async (blob: Blob) => {
     if (!user) return;
     const timestamp = new Date();
-    const extension = type === 'video' ? 'webm' : 'png';
+    const extension = 'webm';
     const filename = `ScreenSnapp-${timestamp.toISOString()}.${extension}`;
 
     const newRecording: Omit<Recording, 'id'> = {
       userId: user.id,
-      type,
+      type: 'video',
       blob,
       filename,
       timestamp,
@@ -65,7 +65,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
         <RecordingControls
-            onRecordingComplete={(blob) => addRecording(blob, 'video')}
+            onRecordingComplete={addRecording}
         />
         <RecordingsList
             recordings={recordings || []}
