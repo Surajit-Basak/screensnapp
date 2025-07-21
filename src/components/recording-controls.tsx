@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { Separator } from './ui/separator';
 
 type RecordingControlsProps = {
   onRecordingComplete: (blob: Blob) => void;
@@ -42,8 +41,10 @@ export function RecordingControls({
   const handleStartRecording = async () => {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: includeAudio,
+        video: {
+            cursor: "always"
+        },
+        audio: includeAudio, // System audio
       });
 
       let finalStream: MediaStream;
@@ -52,10 +53,15 @@ export function RecordingControls({
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const audioTrack = audioStream.getAudioTracks()[0];
-          finalStream = new MediaStream([...displayStream.getTracks(), audioTrack]);
+          const combinedStream = new MediaStream([...displayStream.getTracks(), audioTrack]);
+          // Handle case where user stops sharing from browser controls
+          combinedStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
+          finalStream = combinedStream;
         } catch (audioError) {
           console.warn("Could not get microphone audio, continuing with system audio only.", audioError);
           finalStream = displayStream;
+           // Handle case where user stops sharing from browser controls
+          finalStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
           toast({
             title: 'Microphone not found',
             description: 'Recording will continue without microphone audio.',
@@ -64,13 +70,12 @@ export function RecordingControls({
         }
       } else {
         finalStream = displayStream;
+         // Handle case where user stops sharing from browser controls
+        finalStream.getVideoTracks()[0].addEventListener('ended', handleStopRecording);
       }
       
       mediaStream.current = finalStream;
-      mediaStream.current.getVideoTracks()[0].onended = () => {
-        handleStopRecording();
-      };
-
+      
       mediaRecorder.current = new MediaRecorder(mediaStream.current, {
         mimeType: 'video/webm; codecs=vp9',
       });
@@ -92,11 +97,13 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error starting recording:', err);
       const error = err as Error;
-      toast({
-        title: 'Error starting recording',
-        description: error.message || 'Please ensure you have granted permissions.',
-        variant: 'destructive',
-      });
+      if (error.name !== 'NotAllowedError') {
+        toast({
+          title: 'Error starting recording',
+          description: error.message || 'Please ensure you have granted permissions.',
+          variant: 'destructive',
+        });
+      }
       cleanup();
     }
   };
@@ -123,7 +130,6 @@ export function RecordingControls({
 
   const handleScreenshot = async () => {
     try {
-      // For a simple screenshot, we don't need to maintain the stream if not recording.
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       
       const videoTrack = stream.getVideoTracks()[0];
@@ -131,8 +137,6 @@ export function RecordingControls({
         throw new Error('No video track found for screenshot.');
       }
 
-      // Use a brief delay to allow the user to switch to the desired window
-      // after granting permission, as the permission dialog itself might be captured.
       setTimeout(async () => {
         try {
           const imageCapture = new ImageCapture(videoTrack);
@@ -152,7 +156,6 @@ export function RecordingControls({
                   description: 'It has been added to your list below.',
                 });
               }
-              // Stop the tracks immediately after capture
               stream.getTracks().forEach((track) => track.stop());
             }, 'image/png');
           } else {
@@ -172,11 +175,13 @@ export function RecordingControls({
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
-      toast({
-        title: 'Error starting screenshot session',
-        description: error.message || 'Please ensure you have granted screen permissions.',
-        variant: 'destructive',
-      });
+      if (error.name !== 'NotAllowedError') {
+        toast({
+          title: 'Error starting screenshot session',
+          description: error.message || 'Please ensure you have granted screen permissions.',
+          variant: 'destructive',
+        });
+      }
     }
   };
   
@@ -184,7 +189,7 @@ export function RecordingControls({
     const handleKeyDown = (e: KeyboardEvent) => {
       if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's'){
         e.preventDefault();
-        if (!isRecording) { // Only allow screenshot if not already recording
+        if (!isRecording) {
           handleScreenshot();
         }
       }
@@ -200,7 +205,7 @@ export function RecordingControls({
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      cleanup(); // Cleanup on component unmount
+      cleanup();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
@@ -213,7 +218,7 @@ export function RecordingControls({
           Capture Your Screen Instantly
         </h1>
         <p className="text-muted-foreground text-center max-w-md">
-          Record videos or take screenshots with a single click. High-quality, fast, and all in your browser.
+          Record videos or take screenshots with a single click. Your captures appear below.
         </p>
         <div className="flex items-center space-x-2 my-4">
           <Switch id="audio-switch" checked={includeAudio} onCheckedChange={setIncludeAudio} disabled={isRecording} />
@@ -248,7 +253,6 @@ export function RecordingControls({
           <span><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> to Screenshot</span>
         </div>
       </div>
-      <Separator className="my-8" />
     </>
   );
 }
