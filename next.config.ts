@@ -21,7 +21,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // This is still good practice to have, even if it wasn't solving the issue alone.
+        source: '/:path*',
         headers: [
           {
             key: 'Permissions-Policy',

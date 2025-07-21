@@ -7,6 +7,7 @@ import type { Recording } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Header } from '@/components/header';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -60,7 +61,7 @@ export default function DashboardPage() {
 
   if (loading || !user) {
     return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
                 <p>Loading...</p>
             </div>
@@ -69,16 +70,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="flex-1">
-      <RecordingControls
-        onRecordingComplete={(blob) => addRecording(blob, 'video')}
-        onScreenshot={(blob) => addRecording(blob, 'screenshot')}
-      />
-      <RecordingsList
-        recordings={recordings}
-        onDelete={deleteRecording}
-        onUpdate={updateRecording}
-      />
-    </main>
+    <>
+      <Header />
+      <main className="flex-1">
+        <RecordingControls
+          onRecordingComplete={(blob) => addRecording(blob, 'video')}
+          onScreenshot={(blob) => addRecording(blob, 'screenshot')}
+        />
+        <RecordingsList
+          recordings={recordings}
+          onDelete={deleteRecording}
+          onUpdate={updateRecording}
+        />
+      </main>
+    </>
   );
 }
