@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useRef, MouseEvent } from 'react';
+import { useState, useRef, MouseEvent, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Crop, Download, MousePointer, X } from 'lucide-react';
+import { Download, MousePointer, X } from 'lucide-react';
 import { getCroppedImg } from '@/lib/crop-image';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -18,24 +18,6 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
   const imageRef = useRef<HTMLImageElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    if (!imageRef.current) return;
-    setIsDragging(true);
-    const rect = imageRef.current.getBoundingClientRect();
-    setCropStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top }); // Reset end point
-  };
-
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !cropStart || !imageRef.current) return;
-    const rect = imageRef.current.getBoundingClientRect();
-    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-  
   const getCropArea = () => {
     if (!cropStart || !cropEnd || !imageRef.current) return null;
 
@@ -52,12 +34,32 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
     const width = Math.abs(cropEnd.x - cropStart.x) * scaleX;
     const height = Math.abs(cropEnd.y - cropStart.y) * scaleY;
 
-    if (width < 10 || height < 10) return null; // Ignore tiny selections
+    // Ignore tiny selections that are likely accidental clicks
+    if (width < 10 || height < 10) return null;
 
     return { x, y, width, height };
   };
 
-  const handleConfirm = async () => {
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (!imageRef.current) return;
+    setIsDragging(true);
+    const rect = imageRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setCropStart({ x, y });
+    setCropEnd({ x, y });
+  };
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !cropStart || !imageRef.current) return;
+    const rect = imageRef.current.getBoundingClientRect();
+    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseUp = async () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
     const cropArea = getCropArea();
     if (cropArea) {
       try {
@@ -93,6 +95,8 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
     const width = Math.abs(cropEnd.x - cropStart.x);
     const height = Math.abs(cropEnd.y - cropStart.y);
 
+    if (width < 2 || height < 2) return null;
+
     return (
       <div
         className="absolute border-2 border-primary bg-primary/20 pointer-events-none"
@@ -101,8 +105,6 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
     );
   };
 
-  const isCropAreaSelected = getCropArea() !== null;
-
   return (
     <div className="fixed inset-0 z-[999] bg-black/90 flex flex-col">
        <div className="flex-shrink-0 p-4 bg-background border-b flex justify-between items-center">
@@ -110,14 +112,10 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
                  <MousePointer className="h-5 w-5" />
                  <AlertTitle>Select an area</AlertTitle>
                  <AlertDescription>
-                    Click and drag on the image to select an area, or save the full capture.
+                    Click and drag to capture a portion of the screen. Release to confirm.
                  </AlertDescription>
             </Alert>
             <div className="flex items-center gap-4">
-                <Button onClick={handleConfirm} size="lg" disabled={!isCropAreaSelected}>
-                    <Crop className="mr-2" />
-                    Confirm Crop
-                </Button>
                 <Button onClick={handleSaveFull} variant="outline" size="lg">
                     <Download className="mr-2" />
                     Save Full Capture
@@ -128,12 +126,14 @@ export function ScreenshotOverlay({ imageUrl, onComplete }: ScreenshotOverlayPro
                 </Button>
             </div>
        </div>
-      <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+      <div 
+        className="flex-1 flex items-center justify-center p-4 relative overflow-hidden"
+        onMouseUp={handleMouseUp}
+      >
         <div
           className="relative cursor-crosshair"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
         >
           <img ref={imageRef} src={imageUrl} alt="Screen capture" className="max-w-full max-h-full" />
           {renderCropBox()}
