@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,11 +15,12 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { FolderUp, Info } from 'lucide-react';
+import { FolderUp, Home, Settings, Info } from 'lucide-react';
 import { useDirectoryPicker } from '@/hooks/use-directory-picker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import DashboardLayout from '../dashboard/layout';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -114,4 +116,13 @@ export default function SettingsPage() {
         </div>
     </>
   );
+}
+
+
+export default function SettingsPage() {
+    return (
+        <DashboardLayout>
+            <SettingsPageContent />
+        </DashboardLayout>
+    )
 }
