@@ -73,12 +73,12 @@ export default function DashboardPage() {
   return (
     <>
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 bg-muted/20">
         <div className="container mx-auto max-w-7xl py-8">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
              <div className="lg:col-span-1 sticky top-24">
                 <Card className="shadow-lg rounded-xl">
-                    <CardContent className="p-6 md:p-8">
+                    <CardContent className="p-6">
                        <RecordingControls
                           onRecordingComplete={(blob) => addRecording(blob, 'video')}
                           onScreenshot={(blob) => addRecording(blob, 'screenshot')}

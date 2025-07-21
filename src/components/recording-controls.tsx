@@ -131,8 +131,6 @@ export function RecordingControls({
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const videoTrack = stream.getVideoTracks()[0];
 
-      // A small delay to allow the user to switch to the window they want to capture
-      setTimeout(async () => {
         try {
           // ImageCapture is more reliable for grabbing a single frame
           const imageCapture = new ImageCapture(videoTrack);
@@ -169,8 +167,6 @@ export function RecordingControls({
               variant: 'destructive',
            });
         }
-      }, 200);
-
     } catch (err) {
       console.error('Error taking screenshot:', err);
       const error = err as Error;
