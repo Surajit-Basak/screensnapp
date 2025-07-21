@@ -4,7 +4,7 @@ import type { Recording } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Download, Monitor, Camera, Trash2, Video } from 'lucide-react';
+import { Download, Monitor, Camera, Trash2, Video, Save } from 'lucide-react';
 
 type RecordingsListProps = {
   recordings: Recording[];
@@ -44,7 +44,7 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
       <CardFooter className="bg-muted/50 p-4 flex flex-col sm:flex-row gap-2 justify-end">
         <Button variant="outline" size="sm" asChild>
           <a href={recording.url} download={recording.filename}>
-            <Download className="mr-2 h-4 w-4" /> Download
+            <Save className="mr-2 h-4 w-4" /> Save
           </a>
         </Button>
         <Button variant="destructive" size="sm" onClick={() => onDelete(recording.id)}>
@@ -58,13 +58,17 @@ function RecordingCard({ recording, onDelete }: { recording: Recording; onDelete
 export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsListProps) {
   if (recordings.length === 0) {
     return (
-      <div className="text-center py-16 px-6 border-2 border-dashed rounded-xl">
-        <Video className="mx-auto h-16 w-16 text-muted-foreground" />
-        <h2 className="mt-6 text-2xl font-semibold tracking-tight">No Recordings Yet</h2>
-        <p className="mt-2 text-muted-foreground">
-          Your screen recordings and screenshots will appear here once you create them.
-        </p>
-      </div>
+       <Card className="shadow-lg rounded-xl">
+        <CardContent className="p-6 md:p-8">
+            <div className="text-center py-16 px-6 border-2 border-dashed rounded-xl">
+                <Video className="mx-auto h-16 w-16 text-muted-foreground" />
+                <h2 className="mt-6 text-2xl font-semibold tracking-tight">No Recordings Yet</h2>
+                <p className="mt-2 text-muted-foreground">
+                Your screen recordings and screenshots will appear here once you create them.
+                </p>
+            </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -74,7 +78,7 @@ export function RecordingsList({ recordings, onDelete, onUpdate }: RecordingsLis
             <h2 className="text-3xl font-bold tracking-tight">Your Captures</h2>
             <p className="text-muted-foreground">Here are your recent recordings and screenshots.</p>
         </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2">
         {recordings.map((rec) => (
           <RecordingCard key={rec.id} recording={rec} onDelete={onDelete} onUpdate={onUpdate}/>
         ))}

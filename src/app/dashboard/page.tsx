@@ -74,20 +74,26 @@ export default function DashboardPage() {
     <>
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto max-w-5xl py-8">
-            <Card className="shadow-lg rounded-xl">
-                <CardContent className="p-6 md:p-8">
-                    <RecordingControls
-                      onRecordingComplete={(blob) => addRecording(blob, 'video')}
-                      onScreenshot={(blob) => addRecording(blob, 'screenshot')}
-                    />
-                    <RecordingsList
-                      recordings={recordings}
-                      onDelete={deleteRecording}
-                      onUpdate={updateRecording}
-                    />
-                </CardContent>
-            </Card>
+        <div className="container mx-auto max-w-7xl py-8">
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+             <div className="lg:col-span-1 sticky top-24">
+                <Card className="shadow-lg rounded-xl">
+                    <CardContent className="p-6 md:p-8">
+                       <RecordingControls
+                          onRecordingComplete={(blob) => addRecording(blob, 'video')}
+                          onScreenshot={(blob) => addRecording(blob, 'screenshot')}
+                        />
+                    </CardContent>
+                </Card>
+             </div>
+             <div className="lg:col-span-2">
+                 <RecordingsList
+                    recordings={recordings}
+                    onDelete={deleteRecording}
+                    onUpdate={updateRecording}
+                  />
+             </div>
+           </div>
         </div>
       </main>
     </>
