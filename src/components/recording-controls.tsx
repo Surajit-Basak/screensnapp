@@ -23,6 +23,8 @@ export function RecordingControls({
   const mediaStream = useRef<MediaStream | null>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const recordedChunks = useRef<Blob[]>([]);
+  const audioContext = useRef<AudioContext | null>(null);
+
 
   const cleanup = () => {
     if (mediaStream.current) {
@@ -31,6 +33,10 @@ export function RecordingControls({
     }
     if (mediaRecorder.current) {
       mediaRecorder.current = null;
+    }
+    if (audioContext.current && audioContext.current.state !== 'closed') {
+        audioContext.current.close();
+        audioContext.current = null;
     }
     recordedChunks.current = [];
     setIsRecording(false);
@@ -46,28 +52,25 @@ export function RecordingControls({
   const handleStartRecording = async () => {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' } as any, // Fix for TypeScript build error
+        video: { cursor: 'always' } as any,
         audio: true, // Request system audio as well
       });
 
       const videoTrack = displayStream.getVideoTracks()[0];
-      // This is the key! Listen for when the user stops sharing via browser UI
+      // Listen for when the user stops sharing via browser UI
       videoTrack.onended = () => {
         handleStopRecording();
       };
       
-      const finalStreamTracks = [videoTrack];
+      const finalTracks = [videoTrack];
       
-      // If system audio was granted, add it
-      if (displayStream.getAudioTracks().length > 0) {
-        finalStreamTracks.push(displayStream.getAudioTracks()[0]);
-      }
+      const systemAudioTrack = displayStream.getAudioTracks()[0];
+      let micAudioTrack: MediaStreamTrack | null = null;
 
       if (includeAudio) {
         try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          const audioTrack = audioStream.getAudioTracks()[0];
-          finalStreamTracks.push(audioTrack);
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          micAudioTrack = micStream.getAudioTracks()[0];
         } catch (audioError) {
           console.warn('Could not get microphone audio.', audioError);
           const error = audioError as Error;
@@ -81,7 +84,28 @@ export function RecordingControls({
         }
       }
 
-      const finalStream = new MediaStream(finalStreamTracks);
+      if (systemAudioTrack && micAudioTrack) {
+        // Both system and mic audio are available, merge them
+        const ctx = new AudioContext();
+        audioContext.current = ctx;
+
+        const systemSource = ctx.createMediaStreamSource(new MediaStream([systemAudioTrack]));
+        const micSource = ctx.createMediaStreamSource(new MediaStream([micAudioTrack]));
+        const destination = ctx.createMediaStreamDestination();
+
+        systemSource.connect(destination);
+        micSource.connect(destination);
+        
+        const combinedAudioTrack = destination.stream.getAudioTracks()[0];
+        finalTracks.push(combinedAudioTrack);
+
+      } else if (systemAudioTrack) {
+        finalTracks.push(systemAudioTrack);
+      } else if (micAudioTrack) {
+        finalTracks.push(micAudioTrack);
+      }
+      
+      const finalStream = new MediaStream(finalTracks);
       mediaStream.current = finalStream;
       recordedChunks.current = [];
       
