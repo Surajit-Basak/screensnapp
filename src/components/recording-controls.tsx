@@ -46,7 +46,7 @@ export function RecordingControls({
   const handleStartRecording = async () => {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' },
+        video: { cursor: 'always' } as any, // Fix for TypeScript build error
         audio: true, // Request system audio as well
       });
 
